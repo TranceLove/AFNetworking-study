@@ -8,6 +8,7 @@
 
 #import <XCTest/XCTest.h>
 #import "AFHTTPSessionManager.h"
+#import "AFURLRequestSerialization.h"
 #import "AFURLResponseSerialization.h"
 
 @interface AFNetworking_studyTests : XCTestCase
@@ -78,5 +79,54 @@ NSString *urlPrefix = @"http://httpbin.org";
     }];
 }
 
+- (void)testRequestTimeout {
+    XCTestExpectation *expect = [self expectationWithDescription:@"Test expectations"];
+    //Response serializer is required or task will fail with unacceptable content type text/html
+    self.manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    self.manager.requestSerializer = [AFJSONRequestSerializer serializer];
+    [self.manager.requestSerializer setTimeoutInterval:5];
+    [self.manager GET:@"/delay/10"
+           parameters:nil
+              success:^(NSURLSessionDataTask *task, NSDictionary *response){
+                  XCTAssertNil(response);
+              }
+              failure:^(NSURLSessionDataTask *task, NSError *error){
+                  NSLog(@"%@", error.localizedDescription);
+                  XCTAssertNotNil(error);
+                  [expect fulfill];
+              }
+     ];
+    
+    
+    [self waitForExpectationsWithTimeout:10.0 handler:^(NSError *error){
+        if(error)
+            NSLog(@"Timed out with error: %@", error);
+    }];
+}
+
+- (void)testSlowCall {
+    XCTestExpectation *expect = [self expectationWithDescription:@"Test expectations"];
+    //Response serializer is required or task will fail with unacceptable content type text/html
+    self.manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    self.manager.requestSerializer = [AFJSONRequestSerializer serializer];
+    [self.manager.requestSerializer setTimeoutInterval:10];
+    [self.manager GET:@"/delay/5"
+           parameters:nil
+              success:^(NSURLSessionDataTask *task, NSDictionary *response){
+                  XCTAssertNotNil(response);
+                  [expect fulfill];
+              }
+              failure:^(NSURLSessionDataTask *task, NSError *error){
+                  NSLog(@"%@", error.localizedDescription);
+                  XCTAssertNil(error);
+              }
+     ];
+    
+    
+    [self waitForExpectationsWithTimeout:10.0 handler:^(NSError *error){
+        if(error)
+            NSLog(@"Timed out with error: %@", error);
+    }];
+}
 
 @end
