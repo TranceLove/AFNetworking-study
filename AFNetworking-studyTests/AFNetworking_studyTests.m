@@ -129,4 +129,60 @@ NSString *urlPrefix = @"http://httpbin.org";
     }];
 }
 
+- (void)testCancelCall {
+    XCTestExpectation *expect = [self expectationWithDescription:@"Test expectations"];
+    //Response serializer is required or task will fail with unacceptable content type text/html
+    self.manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    self.manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    [self.manager.requestSerializer setTimeoutInterval:10];
+    NSURLSessionDataTask *task = [self.manager GET:@"/delay/5"
+           parameters:nil
+              success:^(NSURLSessionDataTask *task, NSDictionary *response){
+                  XCTAssertNotNil(response);
+            }
+              failure:^(NSURLSessionDataTask *task, NSError *error){
+                  NSLog(@"%@", error.localizedDescription);
+                  XCTAssertNil(error);
+              }
+     ];
+    
+    [task resume];
+    [task cancel];
+    
+    XCTAssertEqual(task.state, NSURLSessionTaskStateCanceling);
+    XCTAssertNotEqual(task.state, NSURLSessionTaskStateCompleted);
+    [expect fulfill];
+        
+    [self waitForExpectationsWithTimeout:10.0 handler:^(NSError *error){
+        if(error)
+            NSLog(@"Timed out with error: %@", error);
+    }];
+}
+
+- (void)testPostForm {
+    XCTestExpectation *expect = [self expectationWithDescription:@"Test expectations"];
+    //Response serializer is required or task will fail with unacceptable content type text/html
+    self.manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    self.manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    NSURLSessionDataTask *task = [self.manager POST:@"/post"
+                                         parameters:[NSDictionary dictionaryWithObjectsAndKeys:@"bar", @"foo", nil]
+                                            success:^(NSURLSessionDataTask *task, NSDictionary *response){
+                                                XCTAssertNotNil(response);
+                                                XCTAssertNotNil([response objectForKey:@"form"]);
+                                                [expect fulfill];
+                                            }
+                                            failure:^(NSURLSessionDataTask *task, NSError *error){
+                                                NSLog(@"%@", error.localizedDescription);
+                                                XCTAssertNil(error);
+                                            }
+                                  ];
+    
+    [task resume];
+    
+    [self waitForExpectationsWithTimeout:10.0 handler:^(NSError *error){
+        if(error)
+            NSLog(@"Timed out with error: %@", error);
+    }];
+}
+
 @end
