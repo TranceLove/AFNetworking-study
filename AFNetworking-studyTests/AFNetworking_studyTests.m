@@ -169,6 +169,10 @@ NSString *urlPrefix = @"http://httpbin.org";
                                             success:^(NSURLSessionDataTask *task, NSDictionary *response){
                                                 XCTAssertNotNil(response);
                                                 XCTAssertNotNil([response objectForKey:@"form"]);
+                                                NSDictionary *formData = [response objectForKey:@"form"];
+                                                XCTAssertEqualObjects([formData objectForKey:@"foo"], @"bar");
+                                                NSDictionary *headers = [response objectForKey:@"headers"];
+                                                XCTAssertEqualObjects([headers objectForKey:@"Content-Type"], @"application/x-www-form-urlencoded");
                                                 [expect fulfill];
                                             }
                                             failure:^(NSURLSessionDataTask *task, NSError *error){
