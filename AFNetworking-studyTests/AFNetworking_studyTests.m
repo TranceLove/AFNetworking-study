@@ -159,6 +159,37 @@ NSString *urlPrefix = @"http://httpbin.org";
     }];
 }
 
+- (void)testEnsureAsyncness {
+    XCTestExpectation *expect = [self expectationWithDescription:@"Test expectations"];
+    //Response serializer is required or task will fail with unacceptable content type text/html
+    NSMutableArray *results = [[NSMutableArray alloc] initWithCapacity:2];
+    self.manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    self.manager.requestSerializer = [AFJSONRequestSerializer serializer];
+    [self.manager.requestSerializer setTimeoutInterval:10];
+    [self.manager GET:@"/delay/5"
+           parameters:nil
+              success:^(NSURLSessionDataTask *task, NSDictionary *response){
+                  XCTAssertNotNil(response);
+                  [results addObject:[NSNumber numberWithInt:2]];
+                  [expect fulfill];
+              }
+              failure:^(NSURLSessionDataTask *task, NSError *error){
+                  NSLog(@"%@", error.localizedDescription);
+                  XCTAssertNil(error);
+              }
+     ];
+    
+    [results addObject:[NSNumber numberWithInt:1]];
+    
+    [self waitForExpectationsWithTimeout:10.0 handler:^(NSError *error){
+        if(error)
+            NSLog(@"Timed out with error: %@", error);
+    }];
+    
+    XCTAssertEqualObjects([results objectAtIndex:0], [NSNumber numberWithInt:1]);
+    XCTAssertEqualObjects([results objectAtIndex:1], [NSNumber numberWithInt:2]);
+}
+
 - (void)testPostForm {
     XCTestExpectation *expect = [self expectationWithDescription:@"Test expectations"];
     //Response serializer is required or task will fail with unacceptable content type text/html
